@@ -1,0 +1,1061 @@
+﻿@{
+    ViewData["Title"] = "Fenix Launcher";
+    string usuario_logeado = ViewBag.usuario_logeado;
+}
+
+<div id="app"></div>
+
+<script type="text/x-template" id="app-template">
+        <v-app>
+        <v-card height="100%">
+            <v-toolbar color="primary">
+              <v-app-bar-nav-icon></v-app-bar-nav-icon>
+
+              <v-toolbar-title>Fenix Launcher</v-toolbar-title>
+
+              <v-spacer></v-spacer>
+
+              <v-btn icon="mdi-information" @@click="modal_about = true"></v-btn>
+              <v-btn icon="mdi-account-circle" @@click="modal_account = true"></v-btn>
+              <v-btn icon="mdi-logout" @@click=close_session()></v-btn>
+
+            </v-toolbar>
+
+             <!-- Modal About -->
+                <v-dialog
+                v-model="modal_about"
+                persistent
+                width="500"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="text-h6 text-md-h5 text-lg-h4 text-center" primary-title>
+                    <span class="text-h5">About</span>
+                    </v-card-title>
+                    <v-card-text class="text-center">
+                        <div class="text-h6">Name : Fenix Launcher</div>
+                        <div class="text-h6">Version 1.0</div>
+                        <div class="text-h6">Author : Ismael Heredia</div>
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-close"
+                        variant="elevated"
+            @@click="close_modal_about()"
+                    >
+                        Close
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+             <!-- Modal About -->
+
+            <!-- Modal Process -->
+                <v-dialog
+                v-model="modal_process"
+                persistent
+                width="500"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="headline black text-center" primary-title>
+                    <span class="text-h5">Process</span>
+                    </v-card-title>
+                    <v-card-text>
+                    <v-form ref="form_process">
+                        <v-text-field v-model="form_process_name" label="Name" :rules="rules_form_process"></v-text-field>
+                        <v-text-field v-model="form_process_url" label="URL"></v-text-field>
+                        <v-text-field v-model="form_process_timeout_url" type="number" label="Timeout URL"></v-text-field>
+                    </v-form>
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-close"
+                        variant="elevated"
+            @@click="close_modal_process()"
+                    >
+                        Close
+                    </v-btn>
+                    <v-btn
+                        prepend-icon="mdi-content-save-outline"
+                        variant="elevated"
+            @@click="validate_form_process()"
+                    >
+                        Save
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+            <!-- Modal Process -->
+            <!-- Modal Task -->
+                <v-dialog
+                v-model="modal_task"
+                persistent
+                width="500"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="headline black text-center" primary-title>
+                    <span class="text-h5">Task</span>
+                    </v-card-title>
+                    <v-card-text>
+                    <v-form ref="form_task">
+                        <v-text-field v-model="form_task_name" label="Name" :rules="rules_form_task"></v-text-field>
+                        <v-text-field v-model="form_task_directory" label="Directory" :rules="rules_form_task"></v-text-field>
+                        <v-text-field v-model="form_task_command" label="Command" :rules="rules_form_task"></v-text-field>
+                        <v-select
+                            v-model="form_task_window_style"
+                            :items="windows_style"
+                            item-title="name"
+                            item-value="id"
+                            label="Window Style"
+                            :rules="rules_form_task"
+                        ></v-select>
+                        <v-checkbox v-model="form_task_uac" label="UAC"></v-checkbox>
+                        <v-select
+                            v-model="form_task_process"
+                            :items="processes"
+                            item-title="name"
+                            item-value="id"
+                            label="Process"
+                            readonly
+                            :rules="rules_form_task"
+                        ></v-select>
+                    </v-form>
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-close"
+                        variant="elevated"
+            @@click="close_modal_task()"
+                    >
+                        Close
+                    </v-btn>
+                    <v-btn
+                        prepend-icon="mdi-content-save-outline"
+                        variant="elevated"
+            @@click="validate_form_task()"
+                    >
+                        Save
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+            <!-- Model Task -->
+            <!-- Modal Logs -->
+                <v-dialog
+                v-model="modal_logs"
+                persistent
+                width="500"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="text-h6 text-md-h5 text-lg-h4 text-center" primary-title>
+                    <span class="text-h5 mt-5">Logs</span>
+                    </v-card-title>
+                    <v-tabs
+                      v-model="tab_logs"
+                      align-tabs="center"
+                      color="deep-green-accent-4"
+                    >
+                      <v-tab value="tab_processes">Processes</v-tab>
+                      <v-tab value="tab_tasks">Tasks</v-tab>
+                    </v-tabs>
+                    <v-card-text class="text-center">
+
+                      <v-window v-model="tab_logs">
+                        <v-window-item value="tab_processes">
+                            <div v-if="logs_processes_table.length">
+                                <v-table>
+                                  <thead>
+                                    <tr>
+                                      <th class="text-center">
+                                        Name
+                                      </th>
+                                      <th class="text-center">
+                                        Option
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr
+                                      v-for="log in logs_processes_table"
+                                      :key="log.id"
+                                    >
+                                      <td class="text-center">{{ log.name }}</td>
+                                      <td class="text-center">
+                                          <v-btn @@click="close_process_id(log.id)" class="button-table" size="small" icon="mdi-close" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </v-table>
+                            </div>
+                            <div v-else>
+                                <div>Processes not found</div>
+                            </div>
+                        </v-window-item>
+                        <v-window-item value="tab_tasks">
+                            <div v-if="logs_tasks_table.length">
+                                <v-table>
+                                  <thead>
+                                    <tr>
+                                      <th class="text-center">
+                                        Details
+                                      </th>
+                                      <th class="text-center">
+                                        Option
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr
+                                      v-for="log in logs_tasks_table"
+                                      :key="log.id"
+                                    >
+                                      <td class="text-center">{{ log.details }}</td>
+                                      <td class="text-center">
+                                          <v-btn @@click="close_task_pid(log.pid)" size="small" icon="mdi-close" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </v-table>
+                            </div>
+                            <div v-else>
+                                <div>Tasks not found</div>
+                            </div>
+                        </v-window-item>
+                      </v-window>
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-close"
+                        variant="elevated"
+            @@click="close_modal_logs()"
+                    >
+                        Close
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+            <!-- Modal Logs -->
+            <!-- Modal Account -->
+                <v-dialog
+                v-model="modal_account"
+                persistent
+                width="400"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="headline black text-center" primary-title>
+                    <span class="text-h5">Account</span>
+                    </v-card-title>
+                    <v-card-text>
+                    <v-form ref="form_account">
+                        <v-text-field readonly v-model="form_account_current_username" label="Current Username" :rules="rules_form_account"></v-text-field>
+                        <v-text-field v-model="form_account_new_username" label="New username" :rules="rules_form_account"></v-text-field>
+                        <v-text-field type="password" v-model="form_account_new_password" label="New password" :rules="rules_form_account"></v-text-field>
+                        <v-text-field type="password" v-model="form_account_current_password" label="Current password" :rules="rules_form_account"></v-text-field>
+                    </v-form>
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-close"
+                        variant="elevated"
+            @@click="close_modal_account()"
+                    >
+                        Close
+                    </v-btn>
+                    <v-btn
+                        prepend-icon="mdi-content-save-outline"
+                        variant="elevated"
+            @@click="validate_form_account()"
+                    >
+                        Save
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+            <!-- Modal Account -->
+            <!-- Modal Delete Process  -->
+                <v-dialog
+                v-model="modal_dialog_delete_process"
+                persistent
+                width="500"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="headline black text-center" primary-title>
+                    <span class="text-h5">Confirmation</span>
+                    </v-card-title>
+                    <v-card-text>
+                        Do you want to delete {{ modal_dialog_delete_process_name }} ?
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-cancel"
+                        variant="elevated"
+            @@click="close_modal_delete_process()"
+                    >
+                        Cancel
+                    </v-btn>
+                    <v-btn
+                        prepend-icon="mdi-delete"
+                        variant="elevated"
+            @@click="delete_process()"
+                    >
+                        Delete
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+            <!-- Modal delete process -->
+            <!-- Modal delete task -->
+                <v-dialog
+                v-model="modal_dialog_delete_task"
+                persistent
+                width="500"
+                justify="center"
+                >
+                <v-card>
+                    <v-card-title class="headline black text-center" primary-title>
+                    <span class="text-h5">Confirmation</span>
+                    </v-card-title>
+                    <v-card-text>
+                        Do you want to delete {{ modal_dialog_delete_task_name }} ?
+                    </v-card-text>
+                    <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        prepend-icon="mdi-cancel"
+                        variant="elevated"
+            @@click="close_modal_delete_task()"
+                    >
+                        Cancel
+                    </v-btn>
+                    <v-btn
+                        prepend-icon="mdi-delete"
+                        variant="elevated"
+            @@click="delete_task()"
+                    >
+                        Delete
+                    </v-btn>
+                    </v-card-actions>
+                </v-card>
+                </v-dialog>
+            <!-- Modal Delete Task -->
+            <div class="new-buttons">
+                <div v-if="show_table_processes == true">
+                    <v-btn prepend-icon="mdi-plus" absolute variant="elevated" type="submit" color="primary" class="button-new-process" @@click="modal_process = true">New process</v-btn>
+                    <v-btn prepend-icon="mdi-folder-open" absolute variant="elevated" type="submit" color="primary" class="button-logs" @@click="load_modal_logs()">Logs</v-btn>
+                </div>
+                <div v-if="show_table_tasks == true">
+                    <v-btn prepend-icon="mdi-arrow-left-bold" absolute variant="elevated" type="submit" color="primary" class="button-return" @@click="return_to_processes()">Return</v-btn>
+                    <v-btn prepend-icon="mdi-plus" absolute variant="elevated" type="submit" color="primary" class="button-new-task" @@click="modal_task = true">New task</v-btn>
+                    <v-btn prepend-icon="mdi-folder-open" absolute variant="elevated" type="submit" color="primary" class="button-logs" @@click="modal_logs = true">Logs</v-btn>
+                </div>
+            </div>
+            <v-divider></v-divider>
+            <div v-if="show_table_processes == true" class="filters">
+                <v-row justify="center" align="center">
+                    <v-col cols="4">
+                        <v-text-field v-model="find_name" v-on:keyup.enter="findName" label="Enter name"></v-text-field>
+                    </v-col>
+                </v-row>
+                <v-divider></v-divider>
+            </div>
+            <v-container>
+                <div v-if="show_table_processes == true" class="list-processes">
+                    <div v-if="processes_table.length">
+                        <v-row class="pa-2">
+                            <v-col
+                                v-for="(process) in processes_table"
+                                :key="process.id"
+                                class="d-flex child-flex"
+                                cols="3"
+                            >
+                                <v-card :key="process.id" width="50vh" height="40vh" class="justify-center">
+
+                                    <v-card-title class="text-h6 text-md-h5 text-lg-h4 text-center">{{ process.name }}</v-card-title>
+
+                                    <v-card-text class="unselectable text-center font-weight-bold mt-5" style="overflow-y: auto; height:200px">
+                                        <div v-for="(task) in tasks_table">
+                                            <div v-if="task.idProcess == process.id">
+                                                <div class="text-h6">{{ task.name }}</div>
+                                            </div>
+                                        </div>
+                                        <br/>
+                                        <br/>
+                                    </v-card-text>
+
+                                    <v-card-actions class="justify-center">
+                                        <v-btn @@click="load_modal_process_edit(process.id)" size="small" icon="mdi-pencil" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                        <v-btn @@click="load_tasks_by_process(process.id)" size="small" icon="mdi-console" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                        <v-btn @@click="load_confirm_process_delete(process.id)" size="small" icon="mdi-delete" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                        <v-btn @@click="launch_process(process.id)" size="small" icon="mdi-application-import" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                    </v-card-actions>
+
+                                </v-card>
+                            </v-col>
+                        </v-row>
+                    </div>
+                    <div v-else>
+                        <div class="text-h6 text-md-h5 text-lg-h4 text-center">Processes not found</div>
+                    </div>
+                </div>
+                <div v-if="show_table_tasks == true" class="list-tasks">
+                    <div v-if="tasks_process_table.length">
+                        <div class="text-h6 text-md-h5 text-lg-h4 text-center">Tasks</div>
+                        <v-table>
+                          <thead>
+                            <tr>
+                              <th class="text-center">
+                                Name
+                              </th>
+                              <th class="text-center">
+                                Option
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                              v-for="task in tasks_process_table"
+                              :key="task.id"
+                            >
+                              <td class="text-center">{{ task.name }}</td>
+                              <td class="text-center">
+                                  <v-btn @@click="load_modal_task_edit(task.id)" size="small" icon="mdi-pencil" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                                  <v-btn @@click="load_confirm_task_delete(task.id)" class="button-table" size="small" icon="mdi-delete" absolute variant="elevated" type="submit" color="primary"></v-btn>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-table>
+                    </div>
+                    <div v-else>
+                        <div class="text-h6 text-md-h5 text-lg-h4 text-center">Tasks not found</div>
+                    </div>
+                </div>
+
+            </v-container>
+
+        </v-card>
+        <div class="text-center">
+            <v-snackbar
+                v-model="snackbar"
+                :timeout="5000"
+                multi-line
+            >
+                {{ text }}
+
+                <template v-slot:actions>
+                <v-btn
+                    color="red"
+                    variant="text"
+                    @@click="snackbar = false"
+                >
+                    Close
+                </v-btn>
+                </template>
+            </v-snackbar>
+        </div>
+    </v-app>
+</script>
+
+<script>
+
+    axios.defaults.headers.common = { 'Authorization': `Bearer ${sessionStorage.getItem(config.session_name)}` }
+
+    const { createApp } = Vue;
+    const { createVuetify } = Vuetify;
+
+    const customDarkTheme = {
+        dark: true,
+        colors: {
+            //background: "#15202b",
+            //surface: "#15202b",
+            primary: "#3A8B63",
+            //secondary: "#03dac6",
+            //error: "#f44336",
+            //info: "#2196F3",
+            //success: "#4caf50",
+            //warning: "#fb8c00",
+        },
+    };
+
+    const vuetify = createVuetify({
+        theme: {
+            defaultTheme: "customDarkTheme",
+            themes: {
+                customDarkTheme,
+            },
+        },
+    })
+
+    const app = createApp({
+        template: "#app-template",
+        data() {
+            return {
+                rules_form_process: [
+                    value => {
+                        if (value) return true
+                        return "The field is required"
+                    },
+                ],
+                rules_form_task: [
+                    value => {
+                        if (value) return true
+                        return "The field is required"
+                    },
+                ],
+                rules_form_account: [
+                    value => {
+                        if (value) return true
+                        return "The field is required"
+                    },
+                ],
+                // Messages
+                text: "",
+                snackbar: false,
+                // About
+                modal_about: false,
+                // Form Account
+                modal_account: false,
+                form_account_current_username: "@usuario_logeado",
+                form_account_new_username: "",
+                form_account_new_password: "",
+                form_account_current_password: "",
+                // Form Process
+                modal_process: false,
+                form_process_id: 0,
+                form_process_name: "",
+                form_process_url: "",
+                form_process_timeout_url: "",
+                // Delete Process
+                modal_dialog_delete_process: false,
+                modal_dialog_delete_process_id: 0,
+                modal_dialog_delete_process_name: "",
+                // Form Task
+                modal_task: false,
+                form_task_id: 0,
+                form_task_name: "",
+                form_task_directory: "",
+                form_task_command: "",
+                form_task_window_style: "",
+                form_task_uac: "",
+                form_task_process: "",
+                // Delete Task
+                modal_dialog_delete_task: false,
+                modal_dialog_delete_task_id: 0,
+                modal_dialog_delete_task_name: "",
+                // Form Logs
+                modal_logs: false,
+                // Variables
+                model: 'tab-1',
+                usuario_logeado: "@usuario_logeado",
+                processes : [],
+                processes_table: [],
+                tasks: [],
+                tasks_table: [],
+                tasks_process: [],
+                tasks_process_table: [],
+                logs_processes: [],
+                logs_processes_table: [],
+                logs_tasks: [],
+                logs_tasks_table: [],
+                find_name: "",
+                windows_style: [
+                    { id: 1, name: "Hidden" },
+                    { id: 2, name: "Normal" },
+                    { id: 3, name: "Minimized" },
+                    { id: 4, name: "Maximized" }
+                ],
+                show_table_processes: true,
+                show_table_tasks: false,
+                show_tasks_processes_id: 0,
+                tab_logs: null,
+            };
+        },
+        mounted: function () {
+            this.load_data();
+        },
+        methods: {
+            close_modal_about: function () {
+                this.modal_about = false;
+            },
+            close_session: function () {
+                axios
+                    .post(config.api_url + "/logout", {})
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            sessionStorage.removeItem(config.session_name, "");
+                            window.location.href = "/";
+                        } else {
+                            this.snackbar = true;
+                            this.texto = "An error occurred closing the session";
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            clean_modals: function() {
+                // Close modals
+                this.modal_process = false;
+                this.modal_task = false;
+                // Form Process
+                this.form_process_id = 0;
+                this.form_process_name = "";
+                this.form_process_url = "";
+                this.form_process_timeout_url = "";
+                // Form Task
+                this.form_task_id = 0;
+                this.form_task_name = "";
+                this.form_task_directory = "";
+                this.form_task_command = "";
+                this.form_task_window_style = "";
+                this.form_task_uac = "";
+                //this.form_task_process = "";
+            },
+            reload_data: function () {
+                this.clean_modals();
+                this.load_data();
+                this.findName();
+            },
+            load_data: function () {
+                axios
+                    .get(config.api_url + "/data")
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            const processes = data.processes;
+                            const tasks = data.tasks;
+                            this.processes = processes;
+                            this.tasks = tasks;
+                            this.processes_table = this.processes;
+                            this.tasks_table = tasks;
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            reload_logs: function () {
+                axios
+                    .get(config.api_url + "/logs")
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            this.logs_processes = data.logs_processes;
+                            this.logs_processes_table = this.logs_processes;
+                            this.logs_tasks = data.logs_tasks;
+                            this.logs_tasks_table = this.logs_tasks;
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            load_modal_logs: function() {
+                this.reload_logs();
+                this.modal_logs = true;
+            },
+            close_task_pid: function (pid) {
+                axios
+                    .get(config.api_url + "/tasks/close/" + pid)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            this.show_message("The task closed successfully");
+                            this.reload_logs();
+                        } else {
+                            this.show_message("An error occurred closing the task");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            close_process_id: function(id_process) {
+                axios
+                    .get(config.api_url + "/processes/close/" + id_process)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            this.show_message("The process closed correctly");
+                            this.reload_logs();
+                        } else {
+                            this.show_message("An error occurred closing the process");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            close_modal_logs: function () {
+                this.modal_logs = false;
+            },
+            findName: function () {
+                const filter_list = [];
+
+                for (var i = 0; i < this.processes.length; i++) {
+                    var data = this.processes[i];
+                    var name = data.name;
+                    if (name.toLowerCase().indexOf(this.find_name.toLowerCase()) > -1) {
+                        filter_list.push(data);
+                    }
+                }
+
+                this.processes_table = filter_list;
+            },
+            load_tasks_by_process: function(id_process) {
+                this.show_tasks_processes_id = id_process;
+                this.load_tasks();
+            },
+            return_to_processes: function () {
+                this.show_table_processes = true;
+                this.show_table_tasks = false;
+                this.show_tasks_processes_id = 0;
+            },
+            load_tasks: function () {
+                axios
+                    .get(config.api_url + "/processes/" + this.show_tasks_processes_id + "/tasks")
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            const tasks = data.tasks;
+                            this.tasks_process = tasks;
+                            this.tasks_process_table = this.tasks_process;
+                            this.show_table_processes = false;
+                            this.show_table_tasks = true;
+                            this.form_task_process = this.show_tasks_processes_id;
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            launch_process: function (id_process) {
+                axios
+                    .get(config.api_url + "/processes/execute/" + id_process)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == 1) {
+                            this.show_message("The process started correctly");
+                        } else {
+                            this.show_message("An error occurred starting the process");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            async validate_form_account() {
+                const { valid } = await this.$refs.form_account.validate();
+
+                if (valid) {
+                    this.update_account();
+                }
+            },
+            close_modal_account: function () {
+                this.modal_account = false;
+                this.form_account_new_username = "";
+                this.form_account_new_password = "";
+                this.form_account_current_password = "";
+            },
+            async validate_form_process() {
+                const { valid } = await this.$refs.form_process.validate();
+
+                if (valid) {
+                    this.save_process();
+                }
+            },
+            close_modal_process: function () {
+                this.clean_modals();
+            },
+            async validate_form_task() {
+                const { valid } = await this.$refs.form_task.validate();
+
+                if (valid) {
+                    this.save_task();
+                }
+            },
+            close_modal_task: function () {
+                this.clean_modals();
+            },
+            save_process: function () {
+                var id_process = this.form_process_id;
+                var sendData = {
+                    "Id": id_process,
+                    "Name": this.form_process_name,
+                    "URL": this.form_process_url ? this.form_process_url : "",
+                    "Timeout_URL": this.form_process_timeout_url ? this.form_process_timeout_url : 0
+                }
+                if (id_process != 0) {
+                    axios
+                        .put(config.api_url + "/processes/" + id_process, sendData)
+                        .then(response => {
+                            var data = response.data;
+                            var status = data.status;
+                            if(status == "1") {
+                                this.show_message("The process is updating correctly");
+                                this.reload_data();
+                            } else {
+                                this.show_message("An error occurred updating the process");
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                } else {
+                    axios
+                        .post(config.api_url + "/processes", sendData)
+                        .then(response => {
+                            var data = response.data;
+                            var status = data.status;
+                            if(status == "1") {
+                                this.show_message("The process was registered correctly");
+                                this.reload_data();
+                            } else {
+                                this.show_message("An error occurred while registering the process");
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                }
+            },
+            save_task: function () {
+                var id_task = this.form_task_id;
+                var sendData = {
+                    "Id": id_task,
+                    "Name": this.form_task_name,
+                    "Directory": this.form_task_directory,
+                    "Command": this.form_task_command,
+                    "WindowStyle": this.form_task_window_style,
+                    "UAC": this.form_task_uac == true ? 1 : 0,
+                    "IdProcess": this.form_task_process
+                }
+                if(id_task != 0) {
+                    axios
+                        .put(config.api_url + "/tasks/" + id_task, sendData)
+                        .then(response => {
+                            var data = response.data;
+                            var status = data.status;
+                            if(status == "1") {
+                                this.show_message("The task was updated successfully");
+                                this.reload_data();
+                                this.load_tasks();
+                            } else {
+                                this.show_message("An error occurred updating the task");
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                } else {
+                    axios
+                        .post(config.api_url + "/tasks", sendData)
+                        .then(response => {
+                            var data = response.data;
+                            var status = data.status;
+                            if (status == "1") {
+                                this.show_message("The task was registered correctly");
+                                this.reload_data();
+                                this.load_tasks();
+                            } else {
+                                this.show_message("An error occurred while registering the task");
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                }
+            },
+            load_modal_process_edit: function (id) {
+
+                axios
+                    .get(config.api_url + "/processes/" + id)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == "1") {
+                            var process = data.process;
+                            this.form_process_id = id;
+                            this.form_process_name = process.name;
+                            this.form_process_url = process.url;
+                            this.form_process_timeout_url = process.timeout_URL;
+                            this.modal_process = true;
+                        } else {
+                            this.show_message("An error occurred loading process data");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            load_modal_task_edit: function (id) {
+                axios
+                    .get(config.api_url + "/tasks/" + id)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == "1") {
+                            var task = data.task;
+                            this.form_task_id = id;
+                            this.form_task_name = task.name;
+                            this.form_task_directory = task.directory;
+                            this.form_task_command = task.command;
+                            this.form_task_window_style = task.windowStyle;
+                            this.form_task_uac = task.uac == 1 ? true : false;
+                            this.form_task_process = task.idProcess;
+                            this.modal_task = true;
+                        } else {
+                            this.show_message("An error occurred loading task data");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            load_confirm_process_delete: function(id) {
+                axios
+                    .get(config.api_url + "/processes/" + id)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == "1") {
+                            var process = data.process;
+                            var process_id = process.id;
+                            var process_name = process.name;
+                            this.modal_dialog_delete_process_id = process_id;
+                            this.modal_dialog_delete_process_name = process_name;
+                            this.modal_dialog_delete_process = true;
+                        } else {
+                            this.show_message("An error occurred loading process data");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            load_confirm_task_delete: function(id) {
+                axios
+                    .get(config.api_url + "/tasks/" + id)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == "1") {
+                            var task = data.task;
+                            var task_id = task.id;
+                            var task_name = task.name;
+                            this.modal_dialog_delete_task_id = task_id;
+                            this.modal_dialog_delete_task_name = task_name;
+                            this.modal_dialog_delete_task = true;
+                        } else {
+                            this.show_message("An error occurred loading task data");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            close_modal_delete_process: function() {
+                this.modal_dialog_delete_process = false;
+                this.modal_dialog_delete_process_id = 0;
+                this.modal_dialog_delete_process_name = "";
+            },
+            close_modal_delete_task: function () {
+                this.modal_dialog_delete_task = false;
+                this.modal_dialog_delete_task_id = 0;
+                this.modal_dialog_delete_task_name = "";
+            },
+            delete_process: function () {
+                axios
+                    .delete(config.api_url + "/processes/" + this.modal_dialog_delete_process_id)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == "1") {
+                            this.show_message("The process was deleted correctly");
+                            this.modal_dialog_delete_process = false;
+                            this.modal_dialog_delete_process_id = 0;
+                            this.modal_dialog_delete_process_name = "";
+                            this.reload_data();
+                        } else {
+                            this.show_message("An error occurred deleting the process");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            delete_task: function () {
+                axios
+                    .delete(config.api_url + "/tasks/" + this.modal_dialog_delete_task_id)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if (status == "1") {
+                            this.show_message("The task was successfully deleted");
+                            this.modal_dialog_delete_task = false;
+                            this.modal_dialog_delete_task_id = 0;
+                            this.modal_dialog_delete_task_name = "";
+                            this.reload_data();
+                            this.load_tasks();
+                        } else {
+                            this.show_message("An error occurred deleting the task");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            update_account: function () {
+                var sendData = {
+                    "CurrentUser": this.form_account_current_username,
+                    "NewUsername": this.form_account_new_username,
+                    "NewPassword": this.form_account_new_password,
+                    "CurrentPassword": this.form_account_current_password
+                }
+                axios
+                    .post(config.api_url + "/account", sendData)
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        if(status == "1") {
+                            sessionStorage.removeItem(config.session_name, "");
+                            window.location.href = "/";
+                        }
+                        if(status == 2) {
+                            this.show_message("Bad login");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            show_message: function (text) {
+                this.snackbar = true;
+                this.text = text;
+            }
+        },
+        computed: {
+        }
+    })
+        .use(vuetify)
+        .mount("#app");
+
+</script>

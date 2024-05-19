@@ -1,0 +1,156 @@
+﻿@{
+    ViewData["Title"] = "Login";
+}
+
+<div id="app"></div>
+
+<script type="text/x-template" id="app-template">
+    <v-app>
+
+        <v-card class="form-login">
+            <v-card-title class="headline black text-center" primary-title>
+                Login
+            </v-card-title>
+            <v-card-text class="pa-5">
+                <v-form ref="form_login">
+                    <v-text-field v-model="form_login_username" label="Username" :rules="rules_form_login"></v-text-field>
+                    <v-text-field type="password" v-model="form_login_password" label="Password" :rules="rules_form_login"></v-text-field>
+                </v-form>
+            </v-card-text>
+            <v-card-actions class="pa-5">
+                <v-btn prepend-icon="mdi-login" absolute variant="elevated" type="submit" color="primary" @@click="validate_form_login()" :style="{left: '50%', transform:'translateX(-50%)'}" class="button-login">Login</v-btn>
+            </v-card-actions>
+        </v-card>
+        <div class="text-center">
+            <v-snackbar
+                v-model="snackbar"
+                :timeout="5000"
+                multi-line
+            >
+                {{ text }}
+
+                <template v-slot:actions>
+                <v-btn
+                    color="red"
+                    variant="text"
+                    @@click="snackbar = false"
+                >
+                    Close
+                </v-btn>
+                </template>
+            </v-snackbar>
+        </div>
+    </v-app>
+</script>
+
+<script>
+
+    // Efecto de cargando en las peticiones axios
+
+    axios.interceptors.request.use(function (config) {
+
+        document.body.classList.add('efecto-cargando');
+
+        return config
+    }, function (error) {
+        return Promise.reject(error);
+    });
+
+    axios.interceptors.response.use(function (response) {
+
+        document.body.classList.remove('efecto-cargando');
+
+        return response;
+    }, function (error) {
+        return Promise.reject(error);
+    });
+
+    const { createApp } = Vue;
+    const { createVuetify } = Vuetify;
+
+    const customDarkTheme = {
+        dark: true,
+        colors: {
+            //background: "#15202b",
+            //surface: "#15202b",
+            primary: "#3A8B63",
+            //secondary: "#03dac6",
+            //error: "#f44336",
+            //info: "#2196F3",
+            //success: "#4caf50",
+            //warning: "#fb8c00",
+        },
+    };
+
+    const vuetify = createVuetify({
+        theme: {
+            defaultTheme: "customDarkTheme",
+            themes: {
+                customDarkTheme,
+            },
+        },
+    })
+
+    const routes = [
+    ];
+
+    const router = VueRouter.createRouter({
+        history: VueRouter.createWebHashHistory(),
+        routes
+    })
+
+    const app = createApp({
+        template: "#app-template",
+        data() {
+            return {
+                rules_form_login: [
+                    value => {
+                        if (value) return true
+                        return "The field is required"
+                    },
+                ],
+                text: "",
+                snackbar: false,
+                form_login_username: "",
+                form_login_password: "",
+            };
+        },
+        methods: {
+            login() {
+
+                axios
+                    .post(config.api_url + "/login", { "User": this.form_login_username, "Pwd": this.form_login_password })
+                    .then(response => {
+                        var data = response.data;
+                        var status = data.status;
+                        console.log(response.data);
+                        if (status == 1) {
+                            var token = response.data.token;
+                            sessionStorage.setItem(config.session_name, token);
+                            window.location.href = "/adminpanel";
+                        } else {
+                            this.show_message("Bad login");
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            async validate_form_login() {
+                const { valid } = await this.$refs.form_login.validate();
+
+                if (valid) {
+                    this.login();
+                }
+            },
+            show_message: function (text) {
+                this.snackbar = true;
+                this.text = text;
+            }
+        }
+    })
+        .use(vuetify)
+        .use(router)
+        .mount("#app");
+
+</script>
